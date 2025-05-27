@@ -1,0 +1,870 @@
+# Django・Vue.js単体テスト実装完全ガイド
+## 一流エンジニア小笠原先生が教える新人エンジニア向け解説
+
+### はじめに
+
+本記事は、石黒友季子さんが小笠原良太先生に相談されたDjango・Vue.jsでの基本的な単体テスト作成について、詳細な解説と実装例を交えて解説します。新人エンジニアが実際の現場で使える知識として、コード一行ずつ丁寧に説明していきます。
+
+---
+
+## 📚 テストの基本概念
+
+### なぜ単体テストが重要なのか？
+
+**小笠原先生のポイント：**
+単体テストは以下の理由で重要です：
+
+1. **バグの早期発見** - 開発段階でバグを発見し、修正コストを削減
+2. **リファクタリングの安全性** - コード変更時の動作保証
+3. **ドキュメントとしての役割** - テストコードが仕様書の代わりになる
+4. **開発効率の向上** - 手動テストの時間を削減
+
+### 基本的なテストの書き方
+
+**Django版：**
+```python
+# Django - 単純なアサーションテスト
+from django.test import TestCase  # Djangoのテストクラスをインポート
+
+class BasicTest(TestCase):  # TestCaseクラスを継承
+    def test_simple_assertion(self):  # テストメソッドは必ずtest_で始める
+        result = 2 + 2  # テスト対象の処理を実行
+        self.assertEqual(result, 4)  # 期待値と実際の値を比較
+```
+
+**Vue.js版：**
+```javascript
+// Vue.js - 基本的なテスト
+test('単純な計算テスト', () => {  // テストケースを定義
+    const result = 2 + 2  // テスト対象の処理を実行
+    expect(result).toBe(4)  // 期待値と実際の値を比較
+})
+```
+
+---
+
+## 🧪 パターン1: 単純な関数のテスト
+
+### Django側の実装例
+
+**テスト対象のコード（utils.py）：**
+```python
+def calculate_tax(price, tax_rate=0.1):
+    """
+    価格に税率をかけて税込み価格を返す関数
+    Args:
+        price (float): 税抜き価格
+        tax_rate (float): 税率（デフォルト: 0.1 = 10%）
+    Returns:
+        float: 税込み価格
+    """
+    return price * (1 + tax_rate)  # 税込み価格を計算
+
+def format_phone_number(phone):
+    """
+    電話番号をフォーマットする関数
+    Args:
+        phone (str): 入力された電話番号
+    Returns:
+        str: ハイフンとスペースを除去した電話番号
+    """
+    return phone.replace('-', '').replace(' ', '')  # ハイフンとスペースを削除
+```
+
+**小笠原先生推奨のテストコード：**
+```python
+from django.test import TestCase
+from .utils import calculate_tax, format_phone_number
+
+class UtilsTest(TestCase):
+    """ユーティリティ関数のテストクラス"""
+    
+    def test_calculate_tax_normal_case(self):
+        """税額計算の正常系テスト"""
+        # 基本的な税額計算をテスト
+        result = calculate_tax(1000, 0.1)  # 1000円、税率10%
+        self.assertEqual(result, 1100.0)  # 期待値: 1100円
+        
+        # 異なる税率でのテスト
+        result = calculate_tax(100, 0.08)  # 100円、税率8%
+        self.assertEqual(result, 108.0)  # 期待値: 108円
+    
+    def test_calculate_tax_boundary_values(self):
+        """税額計算の境界値テスト"""
+        # 価格が0円の場合
+        result = calculate_tax(0, 0.1)  # 0円、税率10%
+        self.assertEqual(result, 0.0)  # 期待値: 0円
+        
+        # 税率が0%の場合
+        result = calculate_tax(1000, 0)  # 1000円、税率0%
+        self.assertEqual(result, 1000.0)  # 期待値: 1000円
+        
+        # デフォルト税率の確認
+        result = calculate_tax(1000)  # 税率省略（デフォルト10%）
+        self.assertEqual(result, 1100.0)  # 期待値: 1100円
+    
+    def test_calculate_tax_edge_cases(self):
+        """税額計算の異常系テスト"""
+        # 負の価格の場合（仕様による）
+        result = calculate_tax(-100, 0.1)  # -100円、税率10%
+        self.assertEqual(result, -110.0)  # 期待値: -110円
+        
+        # 高い税率の場合
+        result = calculate_tax(1000, 1.0)  # 1000円、税率100%
+        self.assertEqual(result, 2000.0)  # 期待値: 2000円
+    
+    def test_format_phone_number_normal_case(self):
+        """電話番号フォーマットの正常系テスト"""
+        # ハイフン付き電話番号
+        result = format_phone_number('090-1234-5678')
+        self.assertEqual(result, '09012345678')  # ハイフンが除去される
+        
+        # スペース付き電話番号
+        result = format_phone_number('090 1234 5678')
+        self.assertEqual(result, '09012345678')  # スペースが除去される
+        
+        # ハイフンとスペース混在
+        result = format_phone_number('090-1234 5678')
+        self.assertEqual(result, '09012345678')  # 両方が除去される
+    
+    def test_format_phone_number_edge_cases(self):
+        """電話番号フォーマットの境界値テスト"""
+        # 空文字列
+        result = format_phone_number('')
+        self.assertEqual(result, '')  # 空文字列のまま
+        
+        # 数字のみ（既にフォーマット済み）
+        result = format_phone_number('09012345678')
+        self.assertEqual(result, '09012345678')  # 変更なし
+        
+        # 特殊文字を含む場合
+        result = format_phone_number('090-1234-5678#123')
+        self.assertEqual(result, '09012345678#123')  # ハイフンのみ除去
+```
+
+### Vue.js側の実装例
+
+**テスト対象のコード（utils.js）：**
+```javascript
+/**
+ * 金額を日本円の通貨形式にフォーマットする関数
+ * @param {number} amount - フォーマット対象の金額
+ * @returns {string} - フォーマットされた通貨文字列
+ */
+export function formatCurrency(amount) {
+    return new Intl.NumberFormat('ja-JP', {  // 日本のロケールを指定
+        style: 'currency',  // 通貨形式を指定
+        currency: 'JPY'     // 日本円を指定
+    }).format(amount)  // 金額をフォーマット
+}
+
+/**
+ * メールアドレスの妥当性をチェックする関数
+ * @param {string} email - チェック対象のメールアドレス
+ * @returns {boolean} - 有効なメールアドレスの場合true
+ */
+export function isValidEmail(email) {
+    // 基本的なメールアドレスの正規表現パターン
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return regex.test(email)  // 正規表現でテスト
+}
+```
+
+**小笠原先生推奨のテストコード：**
+```javascript
+// Vue.jsのテストファイル（utils.test.js）
+import { formatCurrency, isValidEmail } from './utils.js'
+
+describe('Utils関数のテスト', () => {  // テストスイートを定義
+    
+    describe('formatCurrency関数', () => {  // formatCurrency関数のテストグループ
+        
+        test('正常な金額のフォーマット', () => {
+            // 基本的な金額のテスト
+            const result = formatCurrency(1000)  // 1000円をフォーマット
+            expect(result).toBe('￥1,000')  // 期待値: ￥1,000
+        })
+        
+        test('小数点を含む金額のフォーマット', () => {
+            // 小数点付きの金額（通常は四捨五入される）
+            const result = formatCurrency(1000.5)  // 1000.5円をフォーマット
+            expect(result).toBe('￥1,001')  // 期待値: ￥1,001（四捨五入）
+        })
+        
+        test('0円のフォーマット', () => {
+            // 境界値テスト: 0円
+            const result = formatCurrency(0)  // 0円をフォーマット
+            expect(result).toBe('￥0')  // 期待値: ￥0
+        })
+        
+        test('負の金額のフォーマット', () => {
+            // 負の金額の場合
+            const result = formatCurrency(-1000)  // -1000円をフォーマット
+            expect(result).toBe('-￥1,000')  // 期待値: -￥1,000
+        })
+        
+        test('大きな金額のフォーマット', () => {
+            // 大きな金額のテスト
+            const result = formatCurrency(1234567)  // 1,234,567円をフォーマット
+            expect(result).toBe('￥1,234,567')  // 期待値: ￥1,234,567
+        })
+    })
+    
+    describe('isValidEmail関数', () => {  // isValidEmail関数のテストグループ
+        
+        test('有効なメールアドレス', () => {
+            // 正常系: 基本的なメールアドレス
+            expect(isValidEmail('test@example.com')).toBe(true)
+            
+            // 正常系: サブドメイン付き
+            expect(isValidEmail('user@mail.example.com')).toBe(true)
+            
+            // 正常系: 数字を含む
+            expect(isValidEmail('user123@example.com')).toBe(true)
+            
+            // 正常系: ドット付きユーザー名
+            expect(isValidEmail('first.last@example.com')).toBe(true)
+        })
+        
+        test('無効なメールアドレス', () => {
+            // 異常系: @マークなし
+            expect(isValidEmail('testexample.com')).toBe(false)
+            
+            // 異常系: ドメインなし
+            expect(isValidEmail('test@')).toBe(false)
+            
+            // 異常系: ユーザー名なし
+            expect(isValidEmail('@example.com')).toBe(false)
+            
+            // 異常系: 拡張子なし
+            expect(isValidEmail('test@example')).toBe(false)
+            
+            // 異常系: 空文字列
+            expect(isValidEmail('')).toBe(false)
+            
+            // 異常系: スペースを含む
+            expect(isValidEmail('test @example.com')).toBe(false)
+            
+            // 異常系: 複数の@マーク
+            expect(isValidEmail('test@@example.com')).toBe(false)
+        })
+    })
+})
+```
+
+---
+
+## 🔧 パターン2: 戻り値があるメソッドのテスト
+
+### Django側の実装例
+
+**テスト対象のコード（models.py）：**
+```python
+from django.db import models
+from datetime import date
+
+class User(models.Model):
+    """ユーザーモデル"""
+    first_name = models.CharField(max_length=50)  # 名前
+    last_name = models.CharField(max_length=50)   # 姓
+    birth_date = models.DateField()               # 生年月日
+    
+    def get_full_name(self):
+        """
+        フルネームを返すメソッド
+        Returns:
+            str: 「姓 名」の形式でフルネームを返す
+        """
+        return f"{self.first_name} {self.last_name}".strip()  # 前後の空白を除去
+    
+    def get_age(self):
+        """
+        年齢を計算して返すメソッド
+        Returns:
+            int: 現在の年齢
+        """
+        today = date.today()  # 今日の日付を取得
+        return today.year - self.birth_date.year  # 年の差で年齢を計算
+    
+    def __str__(self):
+        return self.get_full_name()  # 文字列表現としてフルネームを使用
+```
+
+**小笠原先生推奨のテストコード：**
+```python
+from django.test import TestCase
+from datetime import date
+from .models import User
+
+class UserModelTest(TestCase):
+    """Userモデルのテストクラス"""
+    
+    def setUp(self):
+        """各テストメソッド実行前に呼ばれる準備メソッド"""
+        # テスト用のユーザーデータを作成
+        self.user = User.objects.create(
+            first_name='太郎',           # 名前を設定
+            last_name='田中',            # 姓を設定
+            birth_date=date(1990, 5, 15)  # 生年月日を設定（1990年5月15日）
+        )
+    
+    def test_get_full_name_normal_case(self):
+        """フルネーム取得の正常系テスト"""
+        # 基本的なフルネーム取得
+        full_name = self.user.get_full_name()  # フルネームを取得
+        self.assertEqual(full_name, '太郎 田中')  # 期待値: '太郎 田中'
+    
+    def test_get_full_name_with_spaces(self):
+        """空白文字を含む名前のテスト"""
+        # 名前に空白文字が含まれる場合
+        user_with_spaces = User.objects.create(
+            first_name=' 花子 ',        # 前後に空白を含む名前
+            last_name=' 山田 ',         # 前後に空白を含む姓
+            birth_date=date(1985, 3, 20)
+        )
+        
+        full_name = user_with_spaces.get_full_name()  # フルネームを取得
+        self.assertEqual(full_name, ' 花子   山田 ')  # strip()は全体の前後のみ削除
+    
+    def test_get_full_name_empty_names(self):
+        """空の名前のテスト"""
+        # 名前が空文字列の場合
+        user_empty_first = User.objects.create(
+            first_name='',              # 空の名前
+            last_name='佐藤',           # 通常の姓
+            birth_date=date(1995, 1, 1)
+        )
+        
+        full_name = user_empty_first.get_full_name()  # フルネームを取得
+        self.assertEqual(full_name, ' 佐藤')  # 期待値: ' 佐藤'（先頭にスペース）
+        
+        # 姓が空文字列の場合
+        user_empty_last = User.objects.create(
+            first_name='次郎',          # 通常の名前
+            last_name='',               # 空の姓
+            birth_date=date(1995, 1, 1)
+        )
+        
+        full_name = user_empty_last.get_full_name()  # フルネームを取得
+        self.assertEqual(full_name, '次郎 ')  # 期待値: '次郎 '（末尾にスペース）
+    
+    def test_get_age_calculation(self):
+        """年齢計算のテスト"""
+        # 2025年を基準とした年齢計算（現在年 - 誕生年）
+        age = self.user.get_age()  # 年齢を取得
+        expected_age = date.today().year - 1990  # 期待される年齢を計算
+        self.assertEqual(age, expected_age)  # 年齢が正しく計算されているか確認
+    
+    def test_get_age_different_birth_years(self):
+        """異なる生年の年齢計算テスト"""
+        # 2000年生まれのユーザー
+        user_2000 = User.objects.create(
+            first_name='三郎',
+            last_name='鈴木',
+            birth_date=date(2000, 12, 31)  # 2000年12月31日生まれ
+        )
+        
+        age_2000 = user_2000.get_age()  # 年齢を取得
+        expected_age_2000 = date.today().year - 2000  # 期待年齢を計算
+        self.assertEqual(age_2000, expected_age_2000)  # 年齢確認
+        
+        # 1980年生まれのユーザー
+        user_1980 = User.objects.create(
+            first_name='四郎',
+            last_name='高橋',
+            birth_date=date(1980, 1, 1)   # 1980年1月1日生まれ
+        )
+        
+        age_1980 = user_1980.get_age()  # 年齢を取得
+        expected_age_1980 = date.today().year - 1980  # 期待年齢を計算
+        self.assertEqual(age_1980, expected_age_1980)  # 年齢確認
+    
+    def test_string_representation(self):
+        """文字列表現のテスト"""
+        # __str__メソッドのテスト
+        user_str = str(self.user)  # 文字列変換
+        self.assertEqual(user_str, '太郎 田中')  # get_full_name()の結果と同じ
+```
+
+### Vue.js側の実装例
+
+**テスト対象のコード（UserComponent.vue）：**
+```javascript
+export default {
+    name: 'UserComponent',  // コンポーネント名
+    
+    data() {
+        return {
+            firstName: '',  // 名前のデータ
+            lastName: ''    // 姓のデータ
+        }
+    },
+    
+    methods: {
+        /**
+         * フルネームを返すメソッド
+         * @returns {string} フルネーム
+         */
+        getFullName() {
+            // 名前と姓を結合してフルネームを作成
+            return `${this.firstName} ${this.lastName}`.trim()  // 前後の空白を除去
+        },
+        
+        /**
+         * 年齢チェック（18歳以上かどうか）
+         * @param {string} birthDate - 生年月日（YYYY-MM-DD形式）
+         * @returns {boolean} 18歳以上の場合true
+         */
+        validateAge(birthDate) {
+            const today = new Date()  // 現在の日付を取得
+            const birth = new Date(birthDate)  // 生年月日をDateオブジェクトに変換
+            const age = today.getFullYear() - birth.getFullYear()  // 年の差で年齢を計算
+            return age >= 18  // 18歳以上かどうかを判定
+        }
+    }
+}
+```
+
+**小笠原先生推奨のテストコード：**
+```javascript
+// Vue.jsのテストファイル（UserComponent.test.js）
+import { shallowMount } from '@vue/test-utils'  // Vue Test Utilsをインポート
+import UserComponent from './UserComponent.vue'  // テスト対象コンポーネントをインポート
+
+describe('UserComponent', () => {  // UserComponentのテストスイート
+    
+    let wrapper  // wrapperを格納する変数
+    
+    beforeEach(() => {  // 各テスト実行前に呼ばれるセットアップ
+        // コンポーネントをshallowMountでマウント
+        wrapper = shallowMount(UserComponent)
+    })
+    
+    afterEach(() => {  // 各テスト実行後に呼ばれるクリーンアップ
+        // wrapperを破棄してメモリリークを防ぐ
+        wrapper.unmount()
+    })
+    
+    describe('getFullName メソッド', () => {  // getFullNameメソッドのテストグループ
+        
+        test('正常なフルネーム取得', async () => {
+            // データを設定
+            await wrapper.setData({
+                firstName: '太郎',  // 名前を設定
+                lastName: '田中'    // 姓を設定
+            })
+            
+            // メソッドを実行
+            const result = wrapper.vm.getFullName()  // vm経由でメソッドにアクセス
+            expect(result).toBe('太郎 田中')  // 期待値: '太郎 田中'
+        })
+        
+        test('空文字列の場合', async () => {
+            // 両方とも空文字列に設定
+            await wrapper.setData({
+                firstName: '',  // 空の名前
+                lastName: ''    // 空の姓
+            })
+            
+            const result = wrapper.vm.getFullName()  // メソッドを実行
+            expect(result).toBe('')  // 期待値: ''（空文字列）
+        })
+        
+        test('片方が空文字列の場合', async () => {
+            // 名前のみ設定
+            await wrapper.setData({
+                firstName: '花子',  // 名前を設定
+                lastName: ''        // 姓は空
+            })
+            
+            const result = wrapper.vm.getFullName()  // メソッドを実行
+            expect(result).toBe('花子')  // 期待値: '花子'（trim()で空白除去）
+            
+            // 姓のみ設定
+            await wrapper.setData({
+                firstName: '',     // 名前は空
+                lastName: '山田'   // 姓を設定
+            })
+            
+            const result2 = wrapper.vm.getFullName()  // メソッドを実行
+            expect(result2).toBe('山田')  // 期待値: '山田'（trim()で空白除去）
+        })
+        
+        test('空白文字を含む場合', async () => {
+            // 前後に空白を含むデータを設定
+            await wrapper.setData({
+                firstName: ' 次郎 ',  // 前後に空白を含む名前
+                lastName: ' 佐藤 '    // 前後に空白を含む姓
+            })
+            
+            const result = wrapper.vm.getFullName()  // メソッドを実行
+            expect(result).toBe(' 次郎   佐藤 ')  // 中間の空白は残る、前後のみtrim()
+        })
+    })
+    
+    describe('validateAge メソッド', () => {  // validateAgeメソッドのテストグループ
+        
+        test('18歳以上の場合', () => {
+            // 1990年生まれ（現在35歳程度）
+            const result = wrapper.vm.validateAge('1990-05-15')  // メソッドを実行
+            expect(result).toBe(true)  // 期待値: true（18歳以上）
+        })
+        
+        test('18歳未満の場合', () => {
+            // 2020年生まれ（現在5歳程度）
+            const result = wrapper.vm.validateAge('2020-01-01')  // メソッドを実行
+            expect(result).toBe(false)  // 期待値: false（18歳未満）
+        })
+        
+        test('ちょうど18歳の場合', () => {
+            // 現在年から18を引いた年を動的に計算
+            const currentYear = new Date().getFullYear()  // 現在の年を取得
+            const eighteenYearsAgo = currentYear - 18     // 18年前の年を計算
+            const birthDate = `${eighteenYearsAgo}-01-01` // 18年前の1月1日
+            
+            const result = wrapper.vm.validateAge(birthDate)  // メソッドを実行
+            expect(result).toBe(true)  // 期待値: true（ちょうど18歳）
+        })
+        
+        test('境界値テスト（17歳と19歳）', () => {
+            const currentYear = new Date().getFullYear()  // 現在の年を取得
+            
+            // 17歳（18歳未満）
+            const seventeenYearsAgo = currentYear - 17   // 17年前の年
+            const result17 = wrapper.vm.validateAge(`${seventeenYearsAgo}-01-01`)
+            expect(result17).toBe(false)  // 期待値: false（17歳は18歳未満）
+            
+            // 19歳（18歳以上）
+            const nineteenYearsAgo = currentYear - 19    // 19年前の年
+            const result19 = wrapper.vm.validateAge(`${nineteenYearsAgo}-01-01`)
+            expect(result19).toBe(true)   // 期待値: true（19歳は18歳以上）
+        })
+        
+        test('無効な日付文字列の場合', () => {
+            // 無効な日付文字列
+            const result = wrapper.vm.validateAge('invalid-date')  // 無効な日付
+            expect(result).toBe(false)  // NaNの比較結果はfalse
+        })
+    })
+})
+```
+
+---
+
+## 🏗️ パターン3: クラスメソッドのテスト
+
+### Django側の実装例
+
+**テスト対象のコード（models.py）：**
+```python
+from django.db import models
+from datetime import date
+
+class UserManager(models.Manager):
+    """カスタムユーザーマネージャー"""
+    
+    @classmethod
+    def create_adult_user(cls, **kwargs):
+        """
+        18歳以上のユーザーのみ作成するクラスメソッド
+        Args:
+            **kwargs: ユーザー作成に必要なフィールド
+        Returns:
+            User: 作成されたユーザーオブジェクト
+        Raises:
+            ValueError: 生年月日が未設定または18歳未満の場合
+        """
+        birth_date = kwargs.get('birth_date')  # 生年月日を取得
+        
+        # 生年月日が設定されているかチェック
+        if not birth_date:
+            raise ValueError('生年月日は必須です')  # 例外を発生
+        
+        # 年齢を計算
+        age = date.today().year - birth_date.year  # 現在年 - 誕生年
+        
+        # 18歳未満の場合は例外を発生
+        if age < 18:
+            raise ValueError('18歳未満は登録できません')
+        
+        # 条件を満たす場合はユーザーを作成
+        return cls.create(**kwargs)  # 親クラスのcreateメソッドを呼び出し
+
+class User(models.Model):
+    """ユーザーモデル"""
+    first_name = models.CharField(max_length=50)  # 名前
+    last_name = models.CharField(max_length=50)   # 姓
+    birth_date = models.DateField()               # 生年月日
+    
+    objects = UserManager()  # カスタムマネージャーを使用
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+```
+
+**小笠原先生推奨のテストコード：**
+```python
+from django.test import TestCase
+from datetime import date
+from .models import User
+
+class UserManagerTest(TestCase):
+    """UserManagerのテストクラス"""
+    
+    def test_create_adult_user_success(self):
+        """成人ユーザー作成の正常系テスト"""
+        # 18歳以上のユーザー作成
+        user = User.objects.create_adult_user(
+            first_name='太郎',           # 名前を指定
+            last_name='田中',            # 姓を指定
+            birth_date=date(1990, 5, 15)  # 1990年生まれ（30歳以上）
+        )
+        
+        # ユーザーが正常に作成されたかチェック
+        self.assertIsNotNone(user)  # userがNoneでないことを確認
+        self.assertEqual(user.first_name, '太郎')  # 名前が正しく設定されているか
+        self.assertEqual(user.last_name, '田中')   # 姓が正しく設定されているか
+        self.assertEqual(user.birth_date, date(1990, 5, 15))  # 生年月日が正しく設定されているか
+        
+        # データベースに保存されているかチェック
+        self.assertTrue(User.objects.filter(pk=user.pk).exists())  # DBに存在するか確認
+    
+    def test_create_adult_user_boundary_18_years_old(self):
+        """18歳ちょうどのユーザー作成テスト"""
+        # 現在年から18年前の日付を計算
+        current_year = date.today().year  # 現在の年を取得
+        birth_year = current_year - 18    # 18年前の年を計算
+        birth_date_18 = date(birth_year, 1, 1)  # 18年前の1月1日
+        
+        # 18歳ちょうどのユーザー作成
+        user = User.objects.create_adult_user(
+            first_name='花子',
+            last_name='山田',
+            birth_date=birth_date_18  # 18歳の生年月日
+        )
+        
+        # 正常に作成されることを確認
+        self.assertIsNotNone(user)  # 作成成功を確認
+        self.assertEqual(user.birth_date, birth_date_18)  # 生年月日が正しく設定
+    
+    def test_create_adult_user_no_birth_date_error(self):
+        """生年月日未設定エラーのテスト"""
+        # 生年月日を設定せずにユーザー作成を試行
+        with self.assertRaises(ValueError) as context:  # ValueErrorの発生を期待
+            User.objects.create_adult_user(
+                first_name='次郎',  # 名前のみ設定
+                last_name='佐藤'    # 姓のみ設定
+                # birth_dateは意図的に省略
+            )
+        
+        # エラーメッセージが正しいかチェック
+        self.assertEqual(str(context.exception), '生年月日は必須です')
+    
+    def test_create_adult_user_underage_error(self):
+        """未成年ユーザー作成エラーのテスト"""
+        # 18歳未満のユーザー作成を試行
+        with self.assertRaises(ValueError) as context:  # ValueErrorの発生を期待
+            User.objects.create_adult_user(
+                first_name='三郎',
+                last_name='鈴木',
+                birth_date=date(2010, 1, 1)  # 2010年生まれ（15歳程度）
+            )
+        
+        # エラーメッセージが正しいかチェック
+        self.assertEqual(str(context.exception), '18歳未満は登録できません')
+    
+    def test_create_adult_user_boundary_17_years_old(self):
+        """17歳のユーザー作成エラーテスト"""
+        # 現在年から17年前の日付を計算
+        current_year = date.today().year  # 現在の年を取得
+        birth_year = current_year - 17    # 17年前の年を計算
+        birth_date_17 = date(birth_year, 12, 31)  # 17年前の12月31日
+        
+        # 17歳のユーザー作成を試行（エラーになるはず）
+        with self.assertRaises(ValueError) as context:
+            User.objects.create_adult_user(
+                first_name='四郎',
+                last_name='高橋',
+                birth_date=birth_date_17  # 17歳の生年月日
+            )
+        
+        # 正しいエラーメッセージが出力されるか確認
+        self.assertEqual(str(context.exception), '18歳未満は登録できません')
+    
+    def test_create_adult_user_multiple_users(self):
+        """複数のユーザー作成テスト"""
+        # 複数の成人ユーザーを作成
+        users_data = [
+            {
+                'first_name': '一郎',
+                'last_name': '東京',
+                'birth_date': date(1985, 3, 20)
+            },
+            {
+                'first_name': '二郎',
+                'last_name': '大阪',
+                'birth_date': date(1992, 7, 10)
+            },
+            {
+                'first_name': '三郎',
+                'last_name': '名古屋',
+                'birth_date': date(1988, 11, 5)
+            }
+        ]
+        
+        created_users = []  # 作成されたユーザーのリスト
+        
+        # 各ユーザーデータでユーザーを作成
+        for user_data in users_data:
+            user = User.objects.create_adult_user(**user_data)  # ユーザー作成
+            created_users.append(user)  # リストに追加
+        
+        # 全てのユーザーが作成されたかチェック
+        self.assertEqual(len(created_users), 3)  # 3人のユーザーが作成されたか
+        
+        # データベースに保存されているかチェック
+        db_users = User.objects.all()  # 全ユーザーを取得
+        self.assertEqual(db_users.count(), 3)  # データベースに3人保存されているか
+        
+        # 各ユーザーの情報が正しいかチェック
+        for i, user in enumerate(created_users):
+            expected_data = users_data[i]  # 期待されるデータ
+            self.assertEqual(user.first_name, expected_data['first_name'])
+            self.assertEqual(user.last_name, expected_data['last_name'])
+            self.assertEqual(user.birth_date, expected_data['birth_date'])
+```
+
+---
+
+## 🎯 テストのベストプラクティス
+
+### 小笠原先生が教える重要なポイント
+
+#### 1. テストケースの網羅性
+```python
+# ✅ 良い例：正常系・異常系・境界値を全てテスト
+def test_calculate_tax_comprehensive(self):
+    # 正常系
+    self.assertEqual(calculate_tax(1000, 0.1), 1100.0)
+    
+    # 境界値
+    self.assertEqual(calculate_tax(0, 0.1), 0.0)      # 価格0
+    self.assertEqual(calculate_tax(1000, 0), 1000.0)  # 税率0
+    
+    # 異常系
+    self.assertEqual(calculate_tax(-100, 0.1), -110.0)  # 負の価格
+
+# ❌ 悪い例：正常系のみで境界値や異常系が未テスト
+def test_calculate_tax_insufficient(self):
+    self.assertEqual(calculate_tax(1000, 0.1), 1100.0)  # これだけでは不十分
+```
+
+#### 2. テストメソッド名の命名規則
+```python
+# ✅ 良い例：何をテストしているかが明確
+def test_get_full_name_with_empty_first_name(self):
+    """名前が空文字列の場合のフルネーム取得テスト"""
+    pass
+
+def test_create_adult_user_raises_error_when_underage(self):
+    """未成年の場合にエラーが発生することをテスト"""
+    pass
+
+# ❌ 悪い例：何をテストしているかが不明確
+def test_user_method(self):
+    pass
+
+def test_error_case(self):
+    pass
+```
+
+#### 3. セットアップとクリーンアップ
+```python
+# ✅ 良い例：setUp/tearDownメソッドでテストデータを管理
+class UserModelTest(TestCase):
+    def setUp(self):
+        """各テスト前に実行される準備処理"""
+        self.user = User.objects.create(
+            first_name='テスト',
+            last_name='太郎',
+            birth_date=date(1990, 1, 1)
+        )
+    
+    def tearDown(self):
+        """各テスト後に実行されるクリーンアップ処理"""
+        # TestCaseでは自動でDBがクリーンアップされるため通常は不要
+        pass
+    
+    def test_user_method(self):
+        # self.userを使用してテスト
+        result = self.user.get_full_name()
+        self.assertEqual(result, 'テスト 太郎')
+```
+
+#### 4. アサーションの選択
+```python
+# ✅ 適切なアサーションメソッドを使用
+def test_assertions_examples(self):
+    # 等価性のテスト
+    self.assertEqual(actual, expected)
+    
+    # 真偽値のテスト
+    self.assertTrue(condition)
+    self.assertFalse(condition)
+    
+    # None値のテスト
+    self.assertIsNone(value)
+    self.assertIsNotNone(value)
+    
+    # 例外のテスト
+    with self.assertRaises(ValueError):
+        risky_function()
+    
+    # コレクションのテスト
+    self.assertIn(item, collection)
+    self.assertListEqual(list1, list2)
+```
+
+---
+
+## 🌟 まとめ
+
+小笠原先生から学んだ単体テストの重要なポイント：
+
+### 1. **テスト設計の3原則**
+- **正常系**: 期待される入力での動作確認
+- **異常系**: 予期しない入力での動作確認  
+- **境界値**: 条件の境界での動作確認
+
+### 2. **コードの品質向上**
+- テストコードも本体コードと同じように丁寧に書く
+- テストメソッド名で仕様を表現する
+- 1つのテストメソッドで1つの観点をテストする
+
+### 3. **継続的な改善**
+- テストが失敗した時は、テストコードも見直す
+- リファクタリング時はテストも同時に更新
+- テストカバレッジを意識して網羅性を高める
+
+### 4. **チーム開発での活用**
+- テストコードがドキュメントの役割を果たす
+- 新しいメンバーがコードを理解しやすくなる
+- 安心してコード変更ができる環境を作る
+
+---
+
+## 📚 参考資料
+
+### Django テスト関連
+- [Django公式ドキュメント - Testing in Django](https://docs.djangoproject.com/en/stable/topics/testing/)
+- [Real Python - Testing in Django](https://realpython.com/testing-in-django-part-1-best-practices-and-examples/)
+- [TestDriven.io - Django Testing Best Practices](https://testdriven.io/blog/django-unit-testing/)
+
+### Vue.js テスト関連
+- [Vue.js公式 - Unit Testing](https://vuejs.org/guide/scaling-up/testing.html)
+- [Vue Test Utils公式ドキュメント](https://test-utils.vuejs.org/)
+- [Vue.js Testing Handbook](https://lmiller1990.github.io/vue-testing-handbook/)
+
+---
+
+*本記事は小笠原良太先生の指導のもと、実際の開発現場で使える実践的な内容として作成されました。*
