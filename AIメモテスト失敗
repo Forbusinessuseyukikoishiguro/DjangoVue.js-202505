@@ -1,0 +1,99 @@
+了解です！では Django と Vue.js それぞれで、**わざと失敗するテスト**を書いてみて、「どんなエラーメッセージが出るか」も一緒に紹介します。
+
+---
+
+## ❌ Django版（失敗テスト）
+
+```python
+from django.test import TestCase
+
+class BasicTest(TestCase):
+    def test_simple_assertion(self):
+        result = 2 + 2
+        self.assertEqual(result, 5)  # ← わざと失敗させる（4ではなく5）
+```
+
+### 🔸 実行結果（例）：
+
+```
+F
+======================================================================
+FAIL: test_simple_assertion (yourapp.tests.BasicTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "yourapp/tests.py", line 6, in test_simple_assertion
+    self.assertEqual(result, 5)
+AssertionError: 4 != 5
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)
+```
+
+### 🔍 解説：
+
+* `F` はテスト失敗を意味します。
+* `AssertionError: 4 != 5` → 実際の結果 `4` が、期待した `5` と違うよ！というエラー。
+* `FAILED` と表示される。
+
+---
+
+## ❌ Vue.js（Jest）版（失敗テスト）
+
+```javascript
+test('単純な計算テスト', () => {
+    const result = 2 + 2
+    expect(result).toBe(5)  // ← わざと失敗させる（4ではなく5）
+})
+```
+
+### 🔸 実行結果（例）：
+
+```
+FAIL  ./example.test.js
+✕ 単純な計算テスト (X ms)
+
+  ● 単純な計算テスト
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 5
+    Received: 4
+
+      2 | test('単純な計算テスト', () => {
+      3 |   const result = 2 + 2
+    > 4 |   expect(result).toBe(5)
+        |                   ^
+      5 | })
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+```
+
+### 🔍 解説：
+
+* `FAIL` や `✕` が表示される。
+* `Expected: 5` → 期待値
+  `Received: 4` → 実際の値
+  で違ったからテストが失敗。
+* エラーの発生場所（行番号）も表示される。
+
+---
+
+## ✅ 比較まとめ
+
+| 項目     | Django (Python)            | Vue.js (Jest)                      |
+| ------ | -------------------------- | ---------------------------------- |
+| 成功時    | `OK` 表示、ドット記号 `.`          | `PASS`, `✓ テスト名`                   |
+| 失敗時    | `FAILED`, `AssertionError` | `FAIL`, `Expected: X, Received: Y` |
+| 行番号    | 表示あり                       | 表示あり                               |
+| エラーの内容 | 具体的に違いが出る                  | 期待値と実際の値が比較される                     |
+
+---
+
+## 💡 練習用におすすめ
+
+テストを学ぶには「わざと失敗させる→通るように直す」という流れがとても効果的です。
+
+
