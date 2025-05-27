@@ -1,0 +1,252 @@
+## 小笠原先生への単体テスト基本実装相談
+
+小笠原先生
+
+いつもお世話になっております。石黒です。
+
+Django・Vue.jsでの基本的な単体テスト作成について相談があります。
+単純な関数、戻り値があるメソッド、クラスメソッドのテストコード作成で行き詰まっており、ご指導いただけますでしょうか。
+
+### 【自分なりに調べて理解できた内容】
+
+### **■ 基本的なテストの書き方**
+
+```python
+# Django - 単純なアサーションテスト
+class BasicTest(TestCase):
+    def test_simple_assertion(self):
+        result = 2 + 2
+        self.assertEqual(result, 4)
+
+```
+
+```jsx
+// Vue.js - 基本的なテスト
+test('単純な計算テスト', () => {
+    const result = 2 + 2
+    expect(result).toBe(4)
+})
+
+```
+
+### 【困っているテストパターン】
+
+### **■ パターン1: 単純な関数のテスト**
+
+**Django側**
+
+```python
+# utils.py
+def calculate_tax(price, tax_rate=0.1):
+    """価格に税率をかけて税込み価格を返す"""
+    return price * (1 + tax_rate)
+
+def format_phone_number(phone):
+    """電話番号をフォーマットする"""
+    return phone.replace('-', '').replace(' ', '')
+
+```
+
+**Vue.js側**
+
+```jsx
+// utils.js
+export function formatCurrency(amount) {
+    // 金額を通貨形式にフォーマット
+    return new Intl.NumberFormat('ja-JP', {
+        style: 'currency',
+        currency: 'JPY'
+    }).format(amount)
+}
+
+export function isValidEmail(email) {
+    // メールアドレスの妥当性チェック
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return regex.test(email)
+}
+
+```
+
+**相談点：**
+
+- これらの単純な関数のテストケースをどう網羅すべきか
+- 正常系・異常系の境界値をどう設定するか
+
+### **■ パターン2: 戻り値があるメソッドのテスト**
+
+**Django側**
+
+```python
+class User(models.Model):
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    birth_date = models.DateField()
+
+    def get_full_name(self):
+        """フルネームを返す"""
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def get_age(self):
+        """年齢を計算して返す"""
+        today = date.today()
+        return today.year - self.birth_date.year
+
+```
+
+**Vue.js側**
+
+```jsx
+export default {
+    data() {
+        return {
+            firstName: '',
+            lastName: ''
+        }
+    },
+    methods: {
+        getFullName() {
+            // フルネームを返す
+            return `${this.firstName} ${this.lastName}`.trim()
+        },
+
+        validateAge(birthDate) {
+            // 年齢チェック（18歳以上かどうか）
+            const today = new Date()
+            const birth = new Date(birthDate)
+            const age = today.getFullYear() - birth.getFullYear()
+            return age >= 18
+        }
+    }
+}
+
+```
+
+**相談点：**
+
+- モデルメソッドの戻り値をどうテストするか
+- Vue.jsコンポーネントのメソッドを単体でテストする方法
+
+### **■ パターン3: クラスメソッドのテスト**
+
+**Django側**
+
+```python
+class UserManager(models.Manager):
+    @classmethod
+    def create_adult_user(cls, **kwargs):
+        """18歳以上のユーザーのみ作成"""
+        birth_date = kwargs.get('birth_date')
+        if not birth_date:
+            raise ValueError('生年月日は必須です')
+
+        age = date.today().year - birth_date.year
+        if age < 18:
+            raise ValueError('18歳未満は登録できません')
+
+        return cls.create(**kwargs)
+
+class User(models.Model):
+    objects = UserManager()
+
+```
+
+**相談点：**
+
+- クラスメソッドのテスト方法
+- 例外が発生するケースのテスト方法
+
+### 【具体的に知りたいこと】
+
+### **1. テストケースの書き方**
+
+```python
+# このようなテストの書き方で正しいでしょうか？
+class UtilsTest(TestCase):
+    def test_calculate_tax(self):
+        # 正常系
+        result = calculate_tax(1000, 0.1)
+        self.assertEqual(result, 1100)
+
+        # 境界値テスト（どこまでやるべき？）
+        result = calculate_tax(0, 0.1)
+        self.assertEqual(result, 0)
+
+```
+
+### **2. Vue.jsメソッドの単体テスト**
+
+```jsx
+// コンポーネントのメソッドを単体でテストする正しい方法は？
+describe('UserComponent methods', () => {
+    test('getFullName method', () => {
+        const wrapper = shallowMount(UserComponent)
+        wrapper.setData({
+            firstName: '太郎',
+            lastName: '田中'
+        })
+
+        // この書き方で正しいでしょうか？
+        const result = wrapper.vm.getFullName()
+        expect(result).toBe('太郎 田中')
+    })
+})
+
+```
+
+### **3. 例外テストの書き方**
+
+```python
+# 例外が発生するテストの正しい書き方
+def test_create_adult_user_error(self):
+    with self.assertRaises(ValueError):
+        User.objects.create_adult_user(
+            birth_date=date(2010, 1, 1)  # 未成年
+        )
+
+```
+
+### 【参考にした資料・おすすめ記事】
+
+### **■ Django テスト関連**
+
+- **Django公式ドキュメント**「Testing in Django」
+- **Real Python**「Testing in Django (Part 1-4)」シリーズ
+- **Qiita記事**「Djangoのテストコード作成入門」
+- **Django Girls Tutorial**のテスト部分
+- **Two Scoops of Django**のテスト章（書籍）
+
+### **■ Vue.js テスト関連**
+
+- **Vue.js公式**「Unit Testing」ガイド
+- **Vue Test Utils公式ドキュメント**
+- **Vue School**「Testing Vue.js Applications」
+- **Qiita記事**「Vue.jsでJestを使ったテスト入門」
+- **LogRocket Blog**「A guide to unit testing in Vue.js」
+
+### **■ 特に参考になった記事**
+
+**Django系：**
+
+- 「Django Testing Best Practices」（TestDriven.io）
+- 「Writing Better Django Tests」（Adam Johnson's Blog）
+- 「Django Mock and Patch Examples」（Stack Overflow質問集）
+
+**Vue.js系：**
+
+- 「Vue.js Testing Handbook」（GitHub）
+- 「Testing Vue Components with Jest」（Medium記事）
+- 「Vue Test Utils Cheat Sheet」（公式チートシート）
+
+### **■ まだ理解が浅い・今後読みたい記事**
+
+- 「Advanced Django Testing Patterns」
+- 「Integration Testing in Vue.js Applications」
+- 「Testing Django REST API with pytest」
+
+### 【お願い】
+
+これらの基本的なパターンについて、正しいテストの書き方のご助言をいただければ幸いです
+
+よろしくお願いいたします。
+
+石黒友季子
