@@ -1,0 +1,92 @@
+いい質問です！Django（Python）とVue.js（JavaScript）でそれぞれ書いた**基本テストコード**の「実行結果がどうなるか？」を説明しますね。
+
+---
+
+## ✅ 1. **Django版 (Python)** のテスト
+
+```python
+from django.test import TestCase
+
+class BasicTest(TestCase):
+    def test_simple_assertion(self):
+        result = 2 + 2
+        self.assertEqual(result, 4)
+```
+
+### 🔸 実行方法（例）：
+
+```bash
+python manage.py test
+```
+
+### 🔸 結果：
+
+```
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+OK
+```
+
+### ✅ 解説：
+
+* テストが1つ成功すると「`.`（ドット）」で表示されます。
+* 最後に `OK` と表示されれば、**エラーなし＝成功**。
+* `self.assertEqual(2 + 2, 4)` は正しいのでテストは**成功**します。
+
+---
+
+## ✅ 2. **Vue.js版 (JavaScript, Jest)** のテスト
+
+```javascript
+test('単純な計算テスト', () => {
+    const result = 2 + 2
+    expect(result).toBe(4)
+})
+```
+
+### 🔸 実行方法（例）：
+
+```bash
+npm run test
+# または
+npx jest
+```
+
+（※テスト環境に Jest が使われていると仮定）
+
+### 🔸 結果：
+
+```
+PASS  ./example.test.js
+✓ 単純な計算テスト (X ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+```
+
+### ✅ 解説：
+
+* テスト名「単純な計算テスト」が表示され、**✓（パス）マーク**が付いて成功を意味します。
+* `expect(2 + 2).toBe(4)` なので、テストは**成功**します。
+
+---
+
+## 🧾 両方まとめ（結果イメージ）
+
+| テストフレームワーク      | テスト結果 | 表示されるメッセージ       |
+| --------------- | ----- | ---------------- |
+| Django (Python) | ✅ 成功  | `OK`             |
+| Vue.js (Jest)   | ✅ 成功  | `PASS`, `✓ テスト名` |
+
+---
+
+## 💬 補足
+
+* どちらも **"期待する値と実際の値が一致するか？"** をテストしています。
+* エラーが出ると、どのテストで失敗したか、どの行か、何が違ったかも表示されます。
+
+---
+
+もし失敗させてみたい場合（例：`2 + 2 == 5` にしてみる）も紹介できます。必要ですか？
