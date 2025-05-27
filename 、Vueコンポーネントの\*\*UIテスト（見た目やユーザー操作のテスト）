@@ -1,0 +1,148 @@
+ありがとうございます！では、Vueコンポーネントの\*\*UIテスト（見た目やユーザー操作のテスト）\*\*について、初心者向けに **基本パターン** を以下のように解説します。
+
+---
+
+## ✅ 【VueコンポーネントのUIテスト】基本の流れ
+
+Vueでは `@vue/test-utils` + `Jest` を使って、コンポーネントの見た目やイベントをテストできます。
+
+---
+
+### 🧩 例：`HelloMessage.vue`（テスト対象）
+
+```vue
+<!-- HelloMessage.vue -->
+<template>
+  <div>
+    <p data-testid="message">こんにちは、{{ name }}さん！</p>
+    <button @click="changeName">名前を変更</button>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      name: '太郎'
+    }
+  },
+  methods: {
+    changeName() {
+      this.name = '花子'
+    }
+  }
+}
+</script>
+```
+
+---
+
+### 🧪 テストコード：`HelloMessage.test.js`
+
+```javascript
+import { mount } from '@vue/test-utils'
+import HelloMessage from './HelloMessage.vue'
+
+describe('HelloMessage.vue', () => {
+  test('初期表示メッセージを確認', () => {
+    const wrapper = mount(HelloMessage)
+    const message = wrapper.get('[data-testid="message"]')
+    expect(message.text()).toBe('こんにちは、太郎さん！')
+  })
+
+  test('ボタンをクリックすると名前が変更される', async () => {
+    const wrapper = mount(HelloMessage)
+    await wrapper.find('button').trigger('click')  // ボタンをクリック
+    const message = wrapper.get('[data-testid="message"]')
+    expect(message.text()).toBe('こんにちは、花子さん！')  // 名前が変わっているか確認
+  })
+})
+```
+
+---
+
+## 🔍 テストのポイント
+
+| テスト内容      | メソッド・関数                | 説明                     |
+| ---------- | ---------------------- | ---------------------- |
+| コンポーネントを使う | `mount()`              | コンポーネントを実際に画面にマウントして使う |
+| テキスト取得     | `wrapper.get().text()` | 指定の要素の表示テキストを取得        |
+| ボタンクリック    | `trigger('click')`     | ユーザー操作をシミュレート          |
+| 表示確認       | `expect().toBe()`      | 実際の表示内容を確認             |
+
+---
+
+## ✅ 実行方法
+
+1. 依存をインストールしてない場合：
+
+```bash
+npm install --save-dev jest @vue/test-utils vue-jest
+```
+
+2. テスト実行：
+
+```bash
+npm run test
+# または
+npx jest
+```
+
+---
+
+## ✅ よくあるUIテストパターン
+
+| パターン              | 例                             |
+| ----------------- | ----------------------------- |
+| ボタンを押したらラベルが変わる   | `trigger('click')` + `text()` |
+| テキスト入力してデータが反映される | `setValue()` + `text()`       |
+| 条件でHTMLが表示・非表示になる | `isVisible()` や `exists()`    |
+| 子コンポーネントの表示確認     | `findComponent()`             |
+
+---
+
+## 🎁 応用例（フォーム入力テスト）
+
+```vue
+<!-- FormComponent.vue -->
+<template>
+  <div>
+    <input v-model="name" />
+    <p data-testid="output">こんにちは、{{ name }}さん</p>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return { name: '' }
+  }
+}
+</script>
+```
+
+```js
+// FormComponent.test.js
+import { mount } from '@vue/test-utils'
+import FormComponent from './FormComponent.vue'
+
+test('入力に応じて挨拶が変わる', async () => {
+  const wrapper = mount(FormComponent)
+  const input = wrapper.find('input')
+  await input.setValue('さくら')
+  expect(wrapper.get('[data-testid="output"]').text()).toBe('こんにちは、さくらさん')
+})
+```
+
+---
+
+## ❓次に知りたいことは？
+
+以下のような内容も可能です：
+
+* Vue + Vuetify / Bootstrap でのUIテスト
+* API呼び出しを含む非同期処理のテスト
+* コンポーネントのPropsやEmitのテスト
+* CIツールでの自動テスト実行方法（GitHub Actionsなど）
+
+気になるものがあれば、教えてください！
