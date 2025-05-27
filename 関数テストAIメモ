@@ -1,0 +1,140 @@
+ありがとうございます！では、**関数を使ったテスト**と**バリデーションのテスト**を、Django（Python）とVue.js（Jest）それぞれで初心者向けに解説付きで紹介します。
+
+---
+
+## ✅ 【1】関数を使ったテスト
+
+### ▼ Django（Python）版
+
+**対象の関数**（たとえば `utils.py`）:
+
+```python
+# utils.py
+def add(a, b):
+    return a + b
+```
+
+**テストコード**（例: `tests.py`）:
+
+```python
+from django.test import TestCase
+from .utils import add  # 関数をインポート
+
+class AddFunctionTest(TestCase):
+    def test_add_positive_numbers(self):
+        self.assertEqual(add(2, 3), 5)
+
+    def test_add_negative_numbers(self):
+        self.assertEqual(add(-1, -2), -3)
+```
+
+### ✅ 実行すると：
+
+* `2 + 3 = 5` → OK
+* `-1 + -2 = -3` → OK
+* 成功すれば `. .`（2つのドット）
+* 失敗すれば `F`（Fail）
+
+---
+
+### ▼ Vue.js（Jest）版
+
+**対象の関数**（例: `utils.js`）:
+
+```javascript
+// utils.js
+export function add(a, b) {
+  return a + b
+}
+```
+
+**テストコード**（例: `utils.test.js`）:
+
+```javascript
+import { add } from './utils'
+
+test('add positive numbers', () => {
+  expect(add(2, 3)).toBe(5)
+})
+
+test('add negative numbers', () => {
+  expect(add(-1, -2)).toBe(-3)
+})
+```
+
+### ✅ 実行すると：
+
+* `✓ add positive numbers`
+* `✓ add negative numbers`
+
+---
+
+## ✅ 【2】バリデーションのテスト
+
+### ▼ Django（フォームバリデーション）
+
+**対象のフォーム**（例: `forms.py`）:
+
+```python
+from django import forms
+
+class NameForm(forms.Form):
+    name = forms.CharField(max_length=10)
+```
+
+**テストコード**:
+
+```python
+from django.test import TestCase
+from .forms import NameForm
+
+class NameFormTest(TestCase):
+    def test_valid_name(self):
+        form = NameForm({'name': 'Taro'})
+        self.assertTrue(form.is_valid())  # ← 有効な入力
+
+    def test_too_long_name(self):
+        form = NameForm({'name': 'ThisNameIsTooLong'})
+        self.assertFalse(form.is_valid())  # ← 無効な入力
+```
+
+---
+
+### ▼ Vue.js（フォームバリデーション例）
+
+**対象の関数**（例: `validate.js`）:
+
+```javascript
+// validate.js
+export function isValidName(name) {
+  return name.length <= 10
+}
+```
+
+**テストコード**（例: `validate.test.js`）:
+
+```javascript
+import { isValidName } from './validate'
+
+test('valid name (under 10 chars)', () => {
+  expect(isValidName('Taro')).toBe(true)
+})
+
+test('invalid name (over 10 chars)', () => {
+  expect(isValidName('TooLongName123')).toBe(false)
+})
+```
+
+---
+
+## 📝 補足ポイント
+
+| 内容    | Django                                | Vue.js (Jest)             |
+| ----- | ------------------------------------- | ------------------------- |
+| テスト対象 | Python関数, Form, Modelなど               | 関数, コンポーネント, DOM操作        |
+| 書き方   | `self.assertEqual()` / `assertTrue()` | `expect().toBe()` など      |
+| 実行方法  | `python manage.py test`               | `npm run test` または `jest` |
+
+---
+
+
